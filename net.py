@@ -9,7 +9,7 @@ except ImportError:
     from lasagne.layers import BatchNormLayer
 
 
-def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10, final_act=softmax):
+def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10, final_act=softmax, project=True):
     # create a residual learning building block with two stacked 3x3 convlayers as in paper, inherited from
     # https://github.com/Lasagne/Recipes/blob/master/papers/deep_residual_learning/Deep_Residual_Learning_CIFAR-10.py
     def residual_block(l, increase_dim=False, projection=True):
@@ -55,15 +55,15 @@ def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10,
 
     # first stack of residual blocks, output is 16 x 32 x 32
     for _ in range(n):
-        l = residual_block(l)
+        l = residual_block(l, projection=project)
 
     # second stack of residual blocks, output is 32 x 16 x 16
-    l = residual_block(l, increase_dim=True)
+    l = residual_block(l, increase_dim=True, projection=project)
     for _ in range(1, n):
         l = residual_block(l)
 
     # third stack of residual blocks, output is 64 x 8 x 8
-    l = residual_block(l, increase_dim=True)
+    l = residual_block(l, increase_dim=True, projection=project)
     for _ in range(1, n):
         l = residual_block(l)
 
@@ -76,4 +76,13 @@ def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10,
         W=lasagne.init.HeNormal(),
         nonlinearity=final_act)
 
+    print(network, type(network))
     return network
+
+def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, final_act=softmax)
+    """
+    Just re-use Lasagne stuff to reduce complexity and code copy-paste efforts.
+    We just build a resnet but without projection == convolutional, as commented above in the code
+    TODO: May need to increase the feature maps x2 now 
+    """
+    build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
