@@ -91,9 +91,11 @@ def mal_data_synthesis(train_x, num_targets=10, precision=4):
     # for CIFAR, use 2 data points to encode one approximate 4-bit pixel
     # thus divide the number of targets by 2
     num_targets /= 2
+    num_targets = round(num_targets)
     if num_targets == 0:
         num_targets = 1
 
+    #print(num_targets, type(num_targets))
     targets = train_x[:num_targets]
     input_shape = train_x.shape
     if input_shape[1] == 3:     # rbg to gray scale
