@@ -181,80 +181,103 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
 
     # Finally, launch the training loop.
     sys.stderr.write("Starting training...\n")
-    # We iterate over epochs:
-    for epoch in range(num_epochs):
+    early_stopping = False
+    best_loss = None
+    es_tresh = 1
+    es_count = 0
 
-        # shuffle training data
-        train_indices = np.arange(n)
-        np.random.shuffle(train_indices)
-        X_train = X_train[train_indices, :, :, :]
-        y_train = y_train[train_indices]
+    while not early_stopping:
+        # We iterate over epochs:
+        for epoch in range(num_epochs):
 
-        # In each epoch, we do a full pass over the training data:
-        train_err = 0
-        train_batches = 0
-        start_time = time.time()
-        train_r = 0
-        for batch in iterate_minibatches(X_train, y_train, 128, shuffle=True, augment=False): # no augmentation on face detection!
-            inputs, targets = batch
-            err, r = train_fn(inputs, targets)
-            train_r += r
-            train_err += err
-            train_batches += 1
-        if attack == CAP:
-            # And a full pass over the malicious data
-            for batch in iterate_minibatches(X_train_mal, y_train_mal, 128, shuffle=True, augment=False):
+            # shuffle training data
+            train_indices = np.arange(n)
+            np.random.shuffle(train_indices)
+            X_train = X_train[train_indices, :, :, :]
+            y_train = y_train[train_indices]
+
+            # In each epoch, we do a full pass over the training data:
+            train_err = 0
+            train_batches = 0
+            start_time = time.time()
+            train_r = 0
+            for batch in iterate_minibatches(X_train, y_train, 128, shuffle=True, augment=False): # no augmentation on face detection!
                 inputs, targets = batch
                 err, r = train_fn(inputs, targets)
                 train_r += r
                 train_err += err
                 train_batches += 1
+            if attack == CAP:
+                # And a full pass over the malicious data
+                for batch in iterate_minibatches(X_train_mal, y_train_mal, 128, shuffle=True, augment=False):
+                    inputs, targets = batch
+                    err, r = train_fn(inputs, targets)
+                    train_r += r
+                    train_err += err
+                    train_batches += 1
 
-        if attack == CAP:
-            mal_err = 0
-            mal_acc = 0
-            mal_batches = 0
-            for batch in iterate_minibatches(X_mal, y_mal, 500, shuffle=False):
+            if attack == CAP:
+                mal_err = 0
+                mal_acc = 0
+                mal_batches = 0
+                for batch in iterate_minibatches(X_mal, y_mal, 256, shuffle=False):
+                    inputs, targets = batch
+                    err, acc = val_fn(inputs, targets)
+                    mal_err += err
+                    mal_acc += acc
+                    mal_batches += 1
+
+            # And a full pass over the validation data:
+            val_err = 0
+            val_acc = 0
+            val_batches = 0
+
+            val_batch_size = 128
+
+            for batch in iterate_minibatches(X_val, y_val, val_batch_size, shuffle=False):
                 inputs, targets = batch
                 err, acc = val_fn(inputs, targets)
-                mal_err += err
-                mal_acc += acc
-                mal_batches += 1
+                val_err += err
+                val_acc += acc
+                val_batches += 1
 
-        # And a full pass over the validation data:
-        val_err = 0
-        val_acc = 0
-        val_batches = 0
-        for batch in iterate_minibatches(X_val, y_val, 500, shuffle=False):
-            inputs, targets = batch
-            err, acc = val_fn(inputs, targets)
-            val_err += err
-            val_acc += acc
-            val_batches += 1
+            if (epoch + 1) == 41 or (epoch + 1) == 61:
+                new_lr = sh_lr.get_value() * 0.1
+                sys.stderr.write("New LR:" + str(new_lr) + "\n")
+                sh_lr.set_value(lasagne.utils.floatX(new_lr))
 
-        if (epoch + 1) == 41 or (epoch + 1) == 61:
-            new_lr = sh_lr.get_value() * 0.1
-            sys.stderr.write("New LR:" + str(new_lr) + "\n")
-            sh_lr.set_value(lasagne.utils.floatX(new_lr))
+            # Then we sys.stderr.write the results for this epoch:
+            sys.stderr.write("Epoch {} of {} took {:.3f}s\n".format(epoch + 1, num_epochs, time.time() - start_time))
+            sys.stderr.write("  training loss:\t\t{:.6f}\n".format(train_err / train_batches))
+            if attack == CAP:
+                sys.stderr.write("  malicious loss:\t\t{:.6f}\n".format(mal_err / mal_batches))
+                sys.stderr.write("  malicious accuracy:\t\t{:.2f} %\n".format(
+                    mal_acc / mal_batches / val_batch_size * 100))
+            if attack in {SGN, COR}:
+                sys.stderr.write("  training r:\t\t{:.6f}\n".format(train_r / train_batches))
+            
+            this_acc = val_acc / val_batches / val_batch_size * 100
+            this_loss = val_err / val_batches
 
-        # Then we sys.stderr.write the results for this epoch:
-        sys.stderr.write("Epoch {} of {} took {:.3f}s\n".format(epoch + 1, num_epochs, time.time() - start_time))
-        sys.stderr.write("  training loss:\t\t{:.6f}\n".format(train_err / train_batches))
-        if attack == CAP:
-            sys.stderr.write("  malicious loss:\t\t{:.6f}\n".format(mal_err / mal_batches))
-            sys.stderr.write("  malicious accuracy:\t\t{:.2f} %\n".format(
-                mal_acc / mal_batches / 500 * 100))
-        if attack in {SGN, COR}:
-            sys.stderr.write("  training r:\t\t{:.6f}\n".format(train_r / train_batches))
+            sys.stderr.write("  validation loss:\t\t{:.6f}\n".format(this_loss))
+            sys.stderr.write("  validation accuracy:\t\t{:.2f} %\n".format(this_acc))
+            if best_loss == None or this_loss < best_loss:
+                best_loss = this_loss
+            else:
+                es_count += 1
+            
+            if es_count > es_tresh:
+                early_stopping = True
+                break
 
-        sys.stderr.write("  validation loss:\t\t{:.6f}\n".format(val_err / val_batches))
-        sys.stderr.write("  validation accuracy:\t\t{:.2f} %\n".format(val_acc / val_batches / 500 * 100))
 
     # After training, we compute and sys.stderr.write the test error:
     test_err = 0
     test_acc = 0
     test_batches = 0
-    for batch in iterate_minibatches(X_test, y_test, 500, shuffle=False):
+    test_batch_size = 128
+
+    for batch in iterate_minibatches(X_test, y_test, test_batch_size, shuffle=False):
         inputs, targets = batch
         err, acc = val_fn(inputs, targets)
         test_err += err
@@ -263,7 +286,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
 
     sys.stderr.write("Final results:\n")
     sys.stderr.write("  test loss:\t\t\t{:.6f}\n".format(test_err / test_batches))
-    sys.stderr.write("  test accuracy:\t\t{:.2f} %\n".format(test_acc / test_batches / 500 * 100))
+    sys.stderr.write("  test accuracy:\t\t{:.2f} %\n".format(test_acc / test_batches / test_batch_size * 100))
 
     # save final model
     model_path = MODEL_DIR + 'lfw_{}_res{}_'.format(attack, res_n)
@@ -273,7 +296,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
         model_path += '{}_'.format(corr_ratio)
     np.savez(model_path + 'model.npz', *lasagne.layers.get_all_param_values(network))
 
-    return test_acc / test_batches / 500
+    return test_acc / test_batches / test_batch_size
 
 
 if __name__ == '__main__':

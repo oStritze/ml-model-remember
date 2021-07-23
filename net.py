@@ -83,7 +83,6 @@ def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, fi
     """
     Just re-use Lasagne stuff to reduce complexity and code copy-paste efforts.
     We just build a resnet but without projection == convolutional, as commented above in the code
-    TODO: May need to increase the feature maps x2 now 
     """
     network = build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
     
@@ -96,6 +95,7 @@ def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, fi
     output is connected to a fully-connected layer with 256 units. The
     latter layer connects to the output layer which predicts gender.
     """
+    # TODO: Build network as proposed above
 
     #l_in = InputLayer(shape=input_shape, input_var=input_var)
 
