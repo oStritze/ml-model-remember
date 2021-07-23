@@ -6,7 +6,7 @@ conda activate speml-ex3
 pip install --upgrade https://github.com/Theano/Theano/archive/master.zip
 pip install --upgrade https://github.com/Lasagne/Lasagne/archive/master.zip
 
-conda install scikit-learn pillow
+conda install scikit-learn pillow matplotlib
 
 #conda install mkl-service
 

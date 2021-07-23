@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import math
 
@@ -31,7 +32,7 @@ def _create_gender_target(imagenames, females):
             gender = np.append(gender, 1)
         else:
             gender = np.append(gender, 0)
-    return gender
+    return gender.astype(np.int32)
 
 def _normalize(X_train, X_test):
     # normalize mean
@@ -40,9 +41,9 @@ def _normalize(X_train, X_test):
     X_test -= pixel_mean
     return X_train, X_test
 
-def load_lfw(min_faces=0, shuffle=True, resize=0.5, color=True):
+def load_lfw(min_faces=0, shuffle=True, resize=0.2, slice_=None, color=True, limit=None):
     #from sklearn.datasets import fetch_lfw_people
-    lfw_people = fetch_lfw_people(min_faces_per_person=min_faces, resize=resize, color=color,
+    lfw_people = fetch_lfw_people(min_faces_per_person=min_faces, resize=resize, color=color, slice_=slice_,
                                  data_home="./", download_if_missing=True)
 
     images = _load_image_names()
@@ -57,18 +58,25 @@ def load_lfw(min_faces=0, shuffle=True, resize=0.5, color=True):
 
     N = data.shape[0]
     # did not test this ceil part very vell...
-    H = math.ceil(124 * resize)
-    W = math.ceil(94 * resize)
+    #H = math.ceil(124 * resize)
+    #W = math.ceil(94 * resize)
+    H = math.ceil(250 * resize)
+    W = math.ceil(250 * resize)
     channel = H*W
 
     if color:
         # RGB stack to (N, H, W, C)
         data = np.hstack((data[:, :channel], data[:, channel:2*channel], data[:, 2*channel:]))
-        print(data.shape)
+        #print(data.shape)
         data = data.reshape((-1, H, W, 3)).transpose(0, 3, 1, 2)
-        print(data.shape)
+        #print(data.shape)
     else:
         data = data.reshape(N, H, W)
+
+    if limit != None:
+        sys.stderr.write("Limiting to {} samples...\n".format(limit))
+        data = data[:limit]
+        target = target[:limit]
 
     if shuffle:
         ind = np.arange(target.shape[0])

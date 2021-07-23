@@ -9,7 +9,7 @@ except ImportError:
     from lasagne.layers import BatchNormLayer
 
 
-def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10, final_act=softmax, project=True):
+def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10, final_act=softmax, increase=True, project=True):
     # create a residual learning building block with two stacked 3x3 convlayers as in paper, inherited from
     # https://github.com/Lasagne/Recipes/blob/master/papers/deep_residual_learning/Deep_Residual_Learning_CIFAR-10.py
     def residual_block(l, increase_dim=False, projection=True):
@@ -79,10 +79,25 @@ def build_resnet(input_var=None, input_shape=(None, 3, 50, 50), n=5, classes=10,
     print(network, type(network))
     return network
 
-def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, final_act=softmax)
+def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, final_act=softmax):
     """
     Just re-use Lasagne stuff to reduce complexity and code copy-paste efforts.
     We just build a resnet but without projection == convolutional, as commented above in the code
     TODO: May need to increase the feature maps x2 now 
     """
-    build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
+    network = build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
+    
+    """
+    We use a 5-layer CNN for gender classification on the LFW
+    dataset. The first three layers are convolution layers (32 filters in
+    the first layer, 64 in the second, 128 in the third) followed by a maxpooling
+    operation which reduces the size of convolved features by
+    half. Each filter in the convolution layer is 3x3. The convolution
+    output is connected to a fully-connected layer with 256 units. The
+    latter layer connects to the output layer which predicts gender.
+    """
+
+    #l_in = InputLayer(shape=input_shape, input_var=input_var)
+
+
+    return network
