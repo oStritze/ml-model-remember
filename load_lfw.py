@@ -40,24 +40,35 @@ def _normalize(X_train, X_test):
     X_test -= pixel_mean
     return X_train, X_test
 
-def load_lfw(min_faces=0, shuffle=True, resize=0.5):
+def load_lfw(min_faces=0, shuffle=True, resize=0.5, color=True):
     #from sklearn.datasets import fetch_lfw_people
-    lfw_people = fetch_lfw_people(min_faces_per_person=min_faces, resize=resize, data_home="./", 
-                                download_if_missing=True)
+    lfw_people = fetch_lfw_people(min_faces_per_person=min_faces, resize=resize, color=color,
+                                 data_home="./", download_if_missing=True)
 
     images = _load_image_names()
     females = _load_female_names()
     target = _create_gender_target(images, females) # create gender target
-
+    #print(target.shape, lfw_people.target.shape)
     assert(target.shape == lfw_people.target.shape)
     
     data = lfw_people.data
+
     data = data/255 # scale to [0,1]
 
     N = data.shape[0]
+    # did not test this ceil part very vell...
     H = math.ceil(124 * resize)
     W = math.ceil(94 * resize)
-    data = data.reshape(N, H, W)
+    channel = H*W
+
+    if color:
+        # RGB stack to (N, H, W, C)
+        data = np.hstack((data[:, :channel], data[:, channel:2*channel], data[:, 2*channel:]))
+        print(data.shape)
+        data = data.reshape((-1, H, W, 3)).transpose(0, 3, 1, 2)
+        print(data.shape)
+    else:
+        data = data.reshape(N, H, W)
 
     if shuffle:
         ind = np.arange(target.shape[0])
@@ -79,12 +90,18 @@ if __name__ == '__main__':
     # some debug stuff
     x, xt, y, yt = load_lfw()
     print(y)
-    print(y.sum())
-    print(y.shape-y.sum())
+    print(y.sum(), yt.sum())
+    print(y.shape-y.sum(), yt.shape-yt.sum())
 
-    from PIL import Image
     i = -3
-    print(x[i]*255)
-    pil_image=Image.fromarray(x[i]*255)
-    pil_image.show()
+    img = x[i]
+    #print(img)
+    print(img.shape)
+    import matplotlib.pyplot as plt
+    plt.imshow(img.transpose(1,2,0))
+    plt.show()
+
+    #from PIL import Image
+    #pil_image=Image.fromarray(img)
+    #pil_image.show()
     """
