@@ -270,7 +270,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
             else:
                 es_count += 1
             
-            if es_count > es_tresh:
+            if es_count > es_tresh or epoch+1 == num_epochs :
                 early_stopping = True
                 break
 
