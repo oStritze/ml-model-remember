@@ -3,6 +3,8 @@ from lasagne.layers import (InputLayer, Conv2DLayer, DenseLayer, ExpressionLayer
                             GlobalPoolLayer, ElemwiseSumLayer,
                             NonlinearityLayer, batch_norm)
 from lasagne.nonlinearities import rectify, softmax
+#from lasagne.layers.dnn import Conv2DDNNLayer as ConvLayer
+from lasagne.layers import MaxPool2DLayer as PoolLayer
 try:
     from lasagne.layers.dnn import BatchNormDNNLayer as BatchNormLayer
 except ImportError:
@@ -84,7 +86,7 @@ def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, fi
     Just re-use Lasagne stuff to reduce complexity and code copy-paste efforts.
     We just build a resnet but without projection == convolutional, as commented above in the code
     """
-    network = build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
+    #net = build_resnet(input_var, input_shape, n, classes, final_act, False) # just build the resnet but without projection this time 
     
     """
     We use a 5-layer CNN for gender classification on the LFW
@@ -95,9 +97,38 @@ def build_cnn(input_var=None, input_shape=(None, 3, 50, 50), n=1, classes=10, fi
     output is connected to a fully-connected layer with 256 units. The
     latter layer connects to the output layer which predicts gender.
     """
-    # TODO: Build network as proposed above
+    # Build network as proposed in paper
+    
+    l_in = InputLayer(shape=input_shape, input_var=input_var)
+    l = Conv2DLayer(l_in,
+                    num_filters=32,
+                    filter_size=3,
+                    stride=1,
+                    flip_filters=False)
+    l = PoolLayer(l,
+                    pool_size=2,
+                    stride=2,
+                    ignore_border=False)
+    l = Conv2DLayer(l,
+                    num_filters=64,
+                    filter_size=3,
+                    stride=1,
+                    flip_filters=False)
+    l = PoolLayer(l,
+                    pool_size=2,
+                    stride=2,
+                    ignore_border=False)                            
+    l = Conv2DLayer(l,
+                    num_filters=128,
+                    filter_size=3,
+                    stride=1,
+                    flip_filters=False)
+    l = PoolLayer(l,
+                    pool_size=2,
+                    stride=2,
+                    ignore_border=False)
+    l = DenseLayer(l, num_units=256)
+    net = DenseLayer(l, num_units=classes, nonlinearity=softmax)
+    #net['probabilites'] = NonlinearityLayer(net['fc5'], softmax) #softmax non-linearity layer
 
-    #l_in = InputLayer(shape=input_shape, input_var=input_var)
-
-
-    return network
+    return net

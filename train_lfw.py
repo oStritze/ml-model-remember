@@ -64,7 +64,7 @@ def iterate_minibatches(inputs, targets, batchsize, shuffle=False, augment=False
         yield inp_exc, targets[excerpt]
 
 
-def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1, limit=13233):
+def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1, limit=13233, es_tresh=5):
     # training script modified from
     # https://github.com/Lasagne/Recipes/blob/master/papers/deep_residual_learning/Deep_Residual_Learning_CIFAR-10.py
 
@@ -85,6 +85,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
 
     mal_n = int(mal_p * len(X_train) * 2)
     n_out = len(np.unique(y_train))
+    sys.stderr.write("Training with target classes: {}\n".format(n_out))
 
     if attack in {SGN, COR}:
         # get the gray-scaled data to be encoded
@@ -121,6 +122,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
 
     # Create neural network model (depending on first command line parameter)
     sys.stderr.write("Building model and compiling functions...\n")
+    sys.stderr.write("Model Input Shape: {}\n".format(input_shape))
     network = build_cnn(input_var=input_var, classes=n_out, input_shape=input_shape, n=res_n)
 
     params = lasagne.layers.get_all_params(network, trainable=True)
@@ -183,7 +185,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
     sys.stderr.write("Starting training...\n")
     early_stopping = False
     best_loss = None
-    es_tresh = 1
+    #es_tresh = es_tresh
     es_count = 0
 
     while not early_stopping:
@@ -262,7 +264,9 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
             sys.stderr.write("  validation loss:\t\t{:.6f}\n".format(this_loss))
             sys.stderr.write("  validation accuracy:\t\t{:.2f} %\n".format(this_acc))
             if best_loss == None or this_loss < best_loss:
+                # TODO: ideally we would save the model here since we will overwrite it in the next epoch
                 best_loss = this_loss
+                es_count = 0
             else:
                 es_count += 1
             
@@ -284,12 +288,13 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
         test_acc += acc
         test_batches += 1
 
+    _test_acc = test_acc / test_batches / test_batch_size * 100
     sys.stderr.write("Final results:\n")
     sys.stderr.write("  test loss:\t\t\t{:.6f}\n".format(test_err / test_batches))
-    sys.stderr.write("  test accuracy:\t\t{:.2f} %\n".format(test_acc / test_batches / test_batch_size * 100))
+    sys.stderr.write("  test accuracy:\t\t{:.2f} %\n".format(_test_acc))
 
     # save final model
-    model_path = MODEL_DIR + 'lfw_{}_res{}_'.format(attack, res_n)
+    model_path = MODEL_DIR + 'lfw_{}_{:.2f}_'.format(attack, _test_acc)
     if attack == CAP:
         model_path += '{}_'.format(mal_p)
     if attack in {COR, SGN}:
@@ -308,6 +313,7 @@ if __name__ == '__main__':
     parser.add_argument('--corr', type=float, default=0.)   # malicious term ratio
     parser.add_argument('--mal_p', type=float, default=0.1) # proportion of malicious data to training data
     parser.add_argument('--limit', type=int, default=13233) # default all pics
+    parser.add_argument('--early_stopping_tresh', type=int, default=5) # stop after tresh consecutive bad epochs
     args = parser.parse_args()
     main(num_epochs=args.epoch, lr=args.lr, corr_ratio=args.corr, mal_p=args.mal_p,
-         attack=args.attack, res_n=args.model, limit=args.limit)
+         attack=args.attack, res_n=args.model, limit=args.limit, es_tresh=args.early_stopping_tresh)
