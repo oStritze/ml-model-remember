@@ -222,7 +222,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
                 mal_err = 0
                 mal_acc = 0
                 mal_batches = 0
-                for batch in iterate_minibatches(X_mal, y_mal, 256, shuffle=False):
+                for batch in iterate_minibatches(X_mal, y_mal, 128, shuffle=False):
                     inputs, targets = batch
                     err, acc = val_fn(inputs, targets)
                     mal_err += err
@@ -294,7 +294,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
     sys.stderr.write("  test accuracy:\t\t{:.2f} %\n".format(_test_acc))
 
     # save final model
-    model_path = MODEL_DIR + 'lfw_{}_{:.2f}_'.format(attack, _test_acc)
+    model_path = MODEL_DIR + 'lfw_{}_'.format(attack)
     if attack == CAP:
         model_path += '{}_'.format(mal_p)
     if attack in {COR, SGN}:
@@ -310,10 +310,10 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', type=int, default=100)   # number of epochs for training
     parser.add_argument('--model', type=int, default=5)     # number of blocks in resnet
     parser.add_argument('--attack', type=str, default=COR)  # attack type
-    parser.add_argument('--corr', type=float, default=0.)   # malicious term ratio
+    parser.add_argument('--corr', type=float, default=1.0)   # malicious term ratio
     parser.add_argument('--mal_p', type=float, default=0.1) # proportion of malicious data to training data
     parser.add_argument('--limit', type=int, default=13233) # default all pics
-    parser.add_argument('--early_stopping_tresh', type=int, default=5) # stop after tresh consecutive bad epochs
+    parser.add_argument('--early_stopping_tresh', type=int, default=15) # stop after tresh consecutive bad epochs
     args = parser.parse_args()
     main(num_epochs=args.epoch, lr=args.lr, corr_ratio=args.corr, mal_p=args.mal_p,
          attack=args.attack, res_n=args.model, limit=args.limit, es_tresh=args.early_stopping_tresh)

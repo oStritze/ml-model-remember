@@ -12,8 +12,8 @@ from attack import mal_data_synthesis
 from mask_param import mask_param_lsb, convert_bits_to_params
 from compress import compress_image
 from train import rbg_to_grayscale, reshape_data, CAP, LSB, SGN, COR, NO, MODEL_DIR
-from load_cifar import load_cifar
-
+#from load_cifar import load_cifar
+from load_lfw import load_lfw
 
 IMG_DIR = './imgs/'
 if not os.path.exists(IMG_DIR):
@@ -52,10 +52,12 @@ def test_cap_reconstruction(res_n=5, p=None):
     # evaluate capacity abuse attack
 
     param_values = load_params(CAP, res_n, hp=p)
-    X_train, y_train, X_test, y_test = load_cifar(10)
+    X_train, X_test, y_train, y_test = load_lfw()
 
+    """
     X_train = np.dstack((X_train[:, :1024], X_train[:, 1024:2048], X_train[:, 2048:]))
     X_train = X_train.reshape((-1, 32, 32, 3)).transpose(0, 3, 1, 2)
+    """
 
     input_shape = (None, 3, X_train.shape[2], X_train.shape[3])
     n_out = len(np.unique(y_train))
@@ -97,13 +99,13 @@ def test_cap_reconstruction(res_n=5, p=None):
     raw_data = rbg_to_grayscale(raw_data).astype(np.uint8)
     targets = raw_data[:mal_n]
 
-    img_dir = IMG_DIR + 'cap_cifar_{}/'.format(p)
+    img_dir = IMG_DIR + 'cap_lfw_{}/'.format(p)
     if not os.path.exists(img_dir):
         os.mkdir(img_dir)
 
     err, sim = 0., 0.
     for i, img in enumerate(pixels):
-        img_name = img_dir + 'cifar_res{}_{}.png'.format(res_n, i)
+        img_name = img_dir + 'lfw_res{}_{}.png'.format(res_n, i)
         img *= 2 ** 4
         cv2.imwrite(img_name, img.astype(np.uint8))
         e, s = image_metrics(img, targets[i].astype(np.uint8))
@@ -116,11 +118,13 @@ def test_cap_reconstruction(res_n=5, p=None):
 def test_cor_reconstruction(res_n=5, cr=None):
     # evaluate correlation encoding attack
 
-    X_train, y_train, X_test, y_test = load_cifar(10)
+    X_train, X_test, y_train, y_test = load_lfw()
 
+    """
     X_train = np.dstack((X_train[:, :1024], X_train[:, 1024:2048], X_train[:, 2048:]))
     X_train = X_train.reshape((-1, 32, 32, 3)).transpose(0, 3, 1, 2)
-
+    """
+    
     hidden_data_dim = np.prod(X_train.shape[2:])
 
     # read parameter values
@@ -128,6 +132,7 @@ def test_cor_reconstruction(res_n=5, cr=None):
     params = np.concatenate([p.flatten() for p in param_values if p.ndim > 1])
     total_params = len(params)
     n_hidden_data = total_params / int(hidden_data_dim)
+    n_hidden_data = int(n_hidden_data) # force int conversion 
     if len(params) < n_hidden_data * hidden_data_dim:
         n_hidden_data -= 1
     cor_params = params[: n_hidden_data * hidden_data_dim].reshape(n_hidden_data, X_train.shape[2], X_train.shape[3])
@@ -137,13 +142,13 @@ def test_cor_reconstruction(res_n=5, cr=None):
     raw_data = rbg_to_grayscale(raw_data).astype(np.uint8)
     targets = raw_data[:n_hidden_data]
 
-    img_dir = IMG_DIR + 'cor_cifar_{}/'.format(cr)
+    img_dir = IMG_DIR + 'cor_lfw_{}/'.format(cr)
     if not os.path.exists(img_dir):
         os.mkdir(img_dir)
 
     err, sim = 0., 0.
     for i, img in enumerate(cor_params):
-        img_name = img_dir + 'cifar_res{}_{}.png'.format(res_n, i)
+        img_name = img_dir + 'lfw_res{}_{}.png'.format(res_n, i)
         # transform correlated parameters back to input space
         img = normalize(img)
         img = (img * 255).astype(np.uint8)
@@ -162,10 +167,12 @@ def test_cor_reconstruction(res_n=5, cr=None):
 def test_sgn_reconstruction(res_n=5, cr=None):
     # evaluate sign encoding attack
 
-    X_train, y_train, X_test, y_test = load_cifar(10)
+    X_train, y_train, X_test, y_test = load_lfw()
 
+    """
     X_train = np.dstack((X_train[:, :1024], X_train[:, 1024:2048], X_train[:, 2048:]))
     X_train = X_train.reshape((-1, 32, 32, 3)).transpose(0, 3, 1, 2)
+    """
 
     hidden_data_dim = np.prod(X_train.shape[2:])
 
@@ -189,13 +196,13 @@ def test_sgn_reconstruction(res_n=5, cr=None):
     raw_data = rbg_to_grayscale(raw_data).astype(np.uint8)
     targets = raw_data[:n_hidden_data]
 
-    img_dir = IMG_DIR + 'sgn_cifar_{}/'.format(cr)
+    img_dir = IMG_DIR + 'sgn_lfw_{}/'.format(cr)
     if not os.path.exists(img_dir):
         os.mkdir(img_dir)
 
     err, sim = 0., 0.
     for i, img in enumerate(imgs):
-        img_name = img_dir + 'cifar_res{}_{}.png'.format(res_n, i)
+        img_name = img_dir + 'lfw_res{}_{}.png'.format(res_n, i)
         img = img.astype(np.uint8)
         cv2.imwrite(img_name, img)
         e, s = image_metrics(img, targets[i].astype(np.uint8))
@@ -207,12 +214,14 @@ def test_sgn_reconstruction(res_n=5, cr=None):
 
 def test_lsb_acc(res_n=5, bits=16, n_data=1000):
     param_values = load_params(NO, res_n)
-    X_train, y_train, X_test, y_test = load_cifar(10)
+    X_train, y_train, X_test, y_test = load_lfw()
+    """
     X_train = np.dstack((X_train[:, :1024], X_train[:, 1024:2048], X_train[:, 2048:]))
     X_train = X_train.reshape((-1, 32, 32, 3)).transpose(0, 3, 1, 2)
     X_test = np.dstack((X_test[:, :1024], X_test[:, 1024:2048], X_test[:, 2048:]))
     X_test = X_test.reshape((-1, 32, 32, 3)).transpose(0, 3, 1, 2)
-
+    """
+    
     input_shape = (None, 3, X_train.shape[2], X_train.shape[3])
     n_out = len(np.unique(y_train))
     input_var = T.tensor4('x')
@@ -258,7 +267,7 @@ def load_params(attack, res_n=5, hp=None):
         hp = ''
     else:
         hp = str(hp) + '_'
-    path = MODEL_DIR + 'cifar_{}_{}model.npz'.format(attack, hp)
+    path = MODEL_DIR + 'lfw_{}_{}model.npz'.format(attack, hp)
     with np.load(path) as f:
         param_values = [f['arr_%d' % i] for i in range(len(f.files))]
     return param_values
