@@ -72,7 +72,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
     # Load the dataset
     sys.stderr.write("Loading data...\n")
     if limit != 13233:
-        X_train, X_test, y_train, y_test = load_lfw(limit=limit)
+        X_train, X_test, y_train, y_test = load_lfw(resize=1, limit=limit)
     else:
         X_train, X_test, y_train, y_test = load_lfw()
 
@@ -187,6 +187,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
     best_loss = None
     #es_tresh = es_tresh
     es_count = 0
+    train_batch_size = 128
 
     while not early_stopping:
         # We iterate over epochs:
@@ -203,7 +204,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
             train_batches = 0
             start_time = time.time()
             train_r = 0
-            for batch in iterate_minibatches(X_train, y_train, 128, shuffle=True, augment=False): # no augmentation on face detection!
+            for batch in iterate_minibatches(X_train, y_train, train_batch_size, shuffle=True, augment=False): # no augmentation on face detection!
                 inputs, targets = batch
                 err, r = train_fn(inputs, targets)
                 train_r += r
@@ -211,7 +212,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
                 train_batches += 1
             if attack == CAP:
                 # And a full pass over the malicious data
-                for batch in iterate_minibatches(X_train_mal, y_train_mal, 128, shuffle=True, augment=False):
+                for batch in iterate_minibatches(X_train_mal, y_train_mal, train_batch_size, shuffle=True, augment=False):
                     inputs, targets = batch
                     err, r = train_fn(inputs, targets)
                     train_r += r
@@ -222,7 +223,7 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
                 mal_err = 0
                 mal_acc = 0
                 mal_batches = 0
-                for batch in iterate_minibatches(X_mal, y_mal, 128, shuffle=False):
+                for batch in iterate_minibatches(X_mal, y_mal, train_batch_size, shuffle=False):
                     inputs, targets = batch
                     err, acc = val_fn(inputs, targets)
                     mal_err += err
