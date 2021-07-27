@@ -39,3 +39,12 @@ no real improvement after epoch40
 
 ---
 
+```
+cor: 1.0
+epoch: 100
+  test loss:			0.252928
+  test accuracy:		93.67 %
+python3 test_model_lfw.py
+27.08277369863014 0.973555382325171
+
+```
