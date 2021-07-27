@@ -18,6 +18,8 @@ from joblib import Memory
 from collections import namedtuple
 
 from pkg_resources import parse_version 
+from urllib.request import urlretrieve
+import hashlib
 
 """
 #from ._base import get_data_home, _fetch_remote, RemoteFileMetadata
@@ -146,6 +148,18 @@ class Bunch(dict):
             return self[key]
         except KeyError:
             raise AttributeError(key)
+
+def _sha256(path):
+    """Calculate the sha256 hash of the file at path."""
+    sha256hash = hashlib.sha256()
+    chunk_size = 8192
+    with open(path, "rb") as f:
+        while True:
+            buffer = f.read(chunk_size)
+            if not buffer:
+                break
+            sha256hash.update(buffer)
+    return sha256hash.hexdigest()
 
 def _fetch_remote(remote, dirname=None):
     """Helper function to download a remote dataset into path
