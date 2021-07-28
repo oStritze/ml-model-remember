@@ -72,9 +72,9 @@ def main(num_epochs=500, lr=0.1, attack=CAP, res_n=5, corr_ratio=0.0, mal_p=0.1,
     # Load the dataset
     sys.stderr.write("Loading data...\n")
     if limit != 13233:
-        X_train, X_test, y_train, y_test = load_lfw(resize=1, limit=limit)
+        X_train, X_test, y_train, y_test = load_lfw(resize=0.2, limit=limit)
     else:
-        X_train, X_test, y_train, y_test = load_lfw()
+        X_train, X_test, y_train, y_test = load_lfw(resize=0.2)
 
     """
     X_train = np.dstack((X_train[:, :1024], X_train[:, 1024:2048], X_train[:, 2048:]))
