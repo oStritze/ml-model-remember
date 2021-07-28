@@ -7,7 +7,7 @@ import argparse
 import os
 import cv2
 
-from net import build_resnet
+from net import build_resnet, build_cnn
 from attack import mal_data_synthesis
 from mask_param import mask_param_lsb, convert_bits_to_params
 from compress import compress_image
@@ -63,7 +63,7 @@ def test_cap_reconstruction(res_n=5, p=None):
     n_out = len(np.unique(y_train))
     input_var = T.tensor4('x')
 
-    network = build_resnet(input_var=input_var, classes=n_out, input_shape=input_shape, n=res_n)
+    network = build_cnn(input_var=input_var, classes=n_out, input_shape=input_shape, n=res_n)
 
     mal_n = int(p * len(X_train) * 2)
     lasagne.layers.set_all_param_values(network, param_values)
