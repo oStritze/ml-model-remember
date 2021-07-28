@@ -1,3 +1,24 @@
+# 100 epochs on full image sizes
+## Correlation - cor1.0
+```
+Epoch 100 of 100 took 52.425s
+  training loss:		-0.824554
+  training r:		-0.919175
+  validation loss:		0.236981
+  validation accuracy:		93.83 %
+Final results:
+  test loss:			0.236981
+  test accuracy:		93.83 %
+```
+
+##
+
+
+
+---
+
+
+# On 50x50 resized images
 ## Correlation
 ```
 cor: 1.0 

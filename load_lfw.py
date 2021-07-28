@@ -41,7 +41,7 @@ def _normalize(X_train, X_test):
     X_test -= pixel_mean
     return X_train, X_test
 
-def load_lfw(min_faces=0, shuffle=True, resize=0.2, slice_=None, color=True, limit=None):
+def load_lfw(min_faces=0, shuffle=True, resize=0.2, slice_=None, color=True, limit=None, normalize=True):
     #from sklearn.datasets import fetch_lfw_people
     lfw_people = fetch_lfw_people(min_faces_per_person=min_faces, resize=resize, color=color, slice_=slice_,
                                  data_home="./", download_if_missing=True)
@@ -87,7 +87,8 @@ def load_lfw(min_faces=0, shuffle=True, resize=0.2, slice_=None, color=True, lim
     X_train, X_test, y_train, y_test = train_test_split(
         data, target, test_size=0.2, random_state=42, stratify=target)
 
-    X_train, X_test = _normalize(X_train, X_test)
+    if normalize:
+        X_train, X_test = _normalize(X_train, X_test)
 
     return X_train, X_test, y_train, y_test
 

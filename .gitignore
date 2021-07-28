@@ -7,5 +7,7 @@
 lfw_home/joblib/
 lfw_home/lfw_funneled/
 
+imgs/
+
 __debug.py
 .DS_Store
