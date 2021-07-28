@@ -182,6 +182,7 @@ def test_sgn_reconstruction(res_n=5, cr=None):
     total_params = len(params)
     print(total_params)
     n_hidden_data = total_params / int(hidden_data_dim) / 8
+    n_hidden_data = int(n_hidden_data) # force int conversion again
     print(n_hidden_data)
 
     # get the signs as bits
